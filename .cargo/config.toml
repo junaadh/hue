@@ -1,0 +1,6 @@
+[target.thumbv7em-none-eabihf]
+runner = "./flash-dfu.sh"
+
+[alias]
+firmware = "run -p hue-firmware --target thumbv7em-none-eabihf"
+hued = "run -p hued"

@@ -1,0 +1,6 @@
+[package]
+name = "hue-mediaremote"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
