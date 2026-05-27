@@ -15,4 +15,6 @@ mipidsi.workspace = true
 panic-halt.workspace = true
 embassy-usb.workspace = true
 static_cell.workspace = true
+embassy-sync.workspace = true
 hue-protocol = { path = "../hue-protocol" }
+hue-core = { path = "../hue-core" }

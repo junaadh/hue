@@ -11,6 +11,9 @@ use embassy_stm32::{
     time::Hertz,
     usb::{Driver, InterruptHandler},
 };
+use embassy_sync::{
+    blocking_mutex::raw::CriticalSectionRawMutex, signal::Signal,
+};
 use embassy_time::{Duration, Timer};
 use embassy_usb::{
     Builder as UsbBuilder, Config as UsbConfig,
@@ -24,9 +27,11 @@ use embedded_graphics::{
     text::Text,
 };
 use embedded_hal_bus::spi::ExclusiveDevice;
+use hue_core::state::UiState;
 use hue_protocol::{
     builder::FrameBuilder,
     parser::{FeedResult, FrameParser},
+    payload::decode_state_delta,
     wire::MessageType,
 };
 use mipidsi::{
@@ -35,6 +40,8 @@ use mipidsi::{
 };
 use panic_halt as _;
 use static_cell::StaticCell;
+
+static UI_SIGNAL: Signal<CriticalSectionRawMutex, UiState> = Signal::new();
 
 #[embassy_executor::task]
 async fn usb_task(
@@ -53,6 +60,8 @@ async fn usb_task(
 async fn cdc_task(
     mut class: CdcAcmClass<'static, Driver<'static, USB_OTG_FS>>,
 ) {
+    let mut ui_state = UiState::default();
+
     let mut rx_buf = [0u8; 64];
     let mut tx_buf = [0u8; 64];
     let mut parser = FrameParser::new();
@@ -78,14 +87,30 @@ async fn cdc_task(
                     FeedResult::FrameReady => {
                         let frame = parser.take_frame().unwrap();
 
-                        if frame.header.msg_type == MessageType::Ping {
-                            if let Ok(len) =
-                                FrameBuilder::pong(&mut tx_buf, tx_seq)
-                            {
-                                tx_seq = tx_seq.wrapping_add(1);
-                                let _ =
-                                    class.write_packet(&tx_buf[..len]).await;
+                        match frame.header.msg_type {
+                            MessageType::Ping => {
+                                if let Ok(len) =
+                                    FrameBuilder::pong(&mut tx_buf, tx_seq)
+                                {
+                                    tx_seq = tx_seq.wrapping_add(1);
+                                    let _ = class
+                                        .write_packet(&tx_buf[..len])
+                                        .await;
+                                }
                             }
+
+                            MessageType::StateDelta => {
+                                if decode_state_delta(
+                                    frame.payload,
+                                    &mut ui_state,
+                                )
+                                .is_ok()
+                                {
+                                    UI_SIGNAL.signal(ui_state.clone());
+                                }
+                            }
+
+                            _ => {}
                         }
                     }
                 }
@@ -284,6 +309,35 @@ async fn main(_spawner: Spawner) {
         .unwrap();
 
     loop {
-        Timer::after(Duration::from_secs(1)).await;
+        let state = UI_SIGNAL.wait().await;
+
+        Rectangle::new(Point::new(40, 190), Size::new(160, 45))
+            .into_styled(PrimitiveStyle::with_fill(bg))
+            .draw(&mut display)
+            .unwrap();
+
+        Text::new(state.title.as_str(), Point::new(70, 197), title_style)
+            .draw(&mut display)
+            .unwrap();
+
+        Text::new(state.artist.as_str(), Point::new(70, 217), artist_style)
+            .draw(&mut display)
+            .unwrap();
+
+        Rectangle::new(Point::new(25, 242), Size::new(190, 4))
+            .into_styled(PrimitiveStyle::with_fill(muted))
+            .draw(&mut display)
+            .unwrap();
+
+        let progress = if state.duration_ms == 0 {
+            0
+        } else {
+            ((state.position_ms * 190) / state.duration_ms) as u32
+        };
+
+        Rectangle::new(Point::new(25, 242), Size::new(progress.min(190), 4))
+            .into_styled(PrimitiveStyle::with_fill(accent))
+            .draw(&mut display)
+            .unwrap();
     }
 }

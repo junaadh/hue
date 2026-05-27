@@ -126,3 +126,18 @@ pub enum HStrError {
     UTF8Error,
     TooLong,
 }
+
+impl fmt::Display for HStrError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                Self::UTF8Error => "utf8 error",
+                Self::TooLong => "too long",
+            }
+        )
+    }
+}
+
+impl core::error::Error for HStrError {}
