@@ -1,23 +1,49 @@
-use hue_mediaremote::{MediaEvent, MediaRemote};
+use hue_protocol::{
+    builder::FrameBuilder,
+    parser::{FeedResult, FrameParser},
+    wire::MessageType,
+};
+use hue_transport::traits::{HueRx, HueTx};
+use hued::transport::CdcTransport;
 
-fn main() {
-    let mr = MediaRemote;
-    mr.register_events(on_event)
-        .expect("failed to register event handler");
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let mut cdc = CdcTransport::open_first()?;
 
-    mr.run_loop();
-}
+    let mut tx = [0u8; 64];
+    let len = FrameBuilder::ping(&mut tx, 1)?;
 
-fn on_event(event: MediaEvent) {
-    match event {
-        MediaEvent::Playback { playing } => {
-            println!("playback changed: {playing:?}")
-        }
-        MediaEvent::TrackChanged(t) => {
-            println!("track changed:\n{t:#?}")
-        }
-        MediaEvent::Metadata(m) => {
-            println!("metadata refresh:\n{m:#?}")
+    cdc.send(&tx[..len])?;
+    println!("sent ping frame: {} bytes", len);
+
+    let mut parser = FrameParser::new();
+    let mut rx = [0u8; 64];
+
+    loop {
+        let n = cdc.recv(&mut rx)?;
+
+        for &byte in &rx[..n] {
+            match parser.feed_byte(byte) {
+                FeedResult::NeedMore => {}
+
+                FeedResult::Error(err) => println!("parser error: {err:?}"),
+
+                FeedResult::FrameReady => {
+                    let frame =
+                        parser.take_frame().expect("no parsed frame found");
+
+                    println!(
+                        "rx frame: type={:?}, seq={}. payload_len={}",
+                        frame.header.msg_type,
+                        frame.header.seq,
+                        frame.payload.len()
+                    );
+
+                    if frame.header.msg_type == MessageType::Ping {
+                        println!("echoed ping frame received");
+                        return Ok(());
+                    }
+                }
+            }
         }
     }
 }

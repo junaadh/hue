@@ -5,3 +5,6 @@ edition.workspace = true
 
 [dependencies]
 hue-mediaremote = { path = "../hue-mediaremote" }
+hue-transport = { path = "../hue-transport" }
+hue-protocol = { path = "../hue-protocol" }
+hue-core = { path = "../hue-core" }

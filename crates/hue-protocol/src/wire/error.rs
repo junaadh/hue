@@ -1,3 +1,5 @@
+use core::fmt;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u8)]
 pub enum ProtocolError {
@@ -16,3 +18,28 @@ pub enum ProtocolError {
     EpochOverflow = 0x0D,
     InvalidAlignment = 0x0E,
 }
+
+impl fmt::Display for ProtocolError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let msg = match self {
+            Self::InvalidMagic => "invalid magic",
+            Self::InvalidVersion => "invalid version",
+            Self::UnknownMessageType => "unknown message type",
+            Self::InvalidLength => "invalid length",
+            Self::OversizedPayload => "oversized payload",
+            Self::InvalidUtf8 => "invalid utf-8",
+            Self::CrcMismatch => "crc mismatch",
+            Self::InvalidFieldMask => "invalid field mask",
+            Self::ReservedNonZero => "reserved field/value non-zero",
+            Self::ArtworkIdMismatch => "artwork id mismatch",
+            Self::ChunkIndexMismatch => "chunk index mismatch",
+            Self::ChecksumMismatch => "checksum mismatch",
+            Self::EpochOverflow => "epoch overflow",
+            Self::InvalidAlignment => "invalid alignment",
+        };
+
+        f.write_str(msg)
+    }
+}
+
+impl core::error::Error for ProtocolError {}
