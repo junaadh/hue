@@ -1,0 +1,7 @@
+[package]
+name = "hue-protocol"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+hue-core = { path = "../hue-core", default-features = true }

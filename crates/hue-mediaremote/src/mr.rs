@@ -2,7 +2,6 @@ use crate::{
     PlaybackInfo, ProgressInfo, Result,
     artwork::{ArtworkInfo, ArtworkKind},
     check,
-    event::{EVENT_HANDLER, MediaEvent, event_trampoline},
     playback::PlaybackKind,
     progress::ProgressKind,
     sys,
@@ -60,11 +59,12 @@ impl MediaRemote {
 
     pub fn register_events<F>(&self, handler: F) -> Result<()>
     where
-        F: Fn(MediaEvent) + Send + Sync + 'static,
+        F: Fn(crate::event::MediaEvent) + Send + Sync + 'static,
     {
-        let _ = EVENT_HANDLER.set(Box::new(handler));
-
-        check(unsafe { sys::hue_register_notifications(event_trampoline) })
+        let _ = crate::event::EVENT_HANDLER.set(Box::new(handler));
+        check(unsafe {
+            sys::hue_register_notifications(crate::event::event_trampoline)
+        })
     }
 
     pub fn run_loop(&self) -> ! {

@@ -16,5 +16,3 @@ embedded-graphics = "0.8.2"
 embedded-hal-bus = "0.3.0"
 mipidsi = "0.10.0"
 panic-halt = "1.0.0"
-
-hue-mediaremote = { path = "crates/hue-mediaremote" }

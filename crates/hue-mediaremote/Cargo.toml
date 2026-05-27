@@ -4,3 +4,9 @@ version.workspace = true
 edition.workspace = true
 
 [dependencies]
+hue-core = { path = "../hue-core", default-features = false, optional = true }
+
+[features]
+default    = ["fixed"]
+fixed      = ["dep:hue-core", "hue-core/hstr"]
+alloc-str  = []

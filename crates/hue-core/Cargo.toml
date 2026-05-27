@@ -1,0 +1,12 @@
+[package]
+name = "hue-core"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+
+[features]
+default = ["hstr", "hash", "state"]
+hstr = []
+hash = []
+state = []

@@ -598,6 +598,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "hue-core"
+version = "0.1.0"
+
+[[package]]
 name = "hue-firmware"
 version = "0.1.0"
 dependencies = [
@@ -615,6 +619,16 @@ dependencies = [
 [[package]]
 name = "hue-mediaremote"
 version = "0.1.0"
+dependencies = [
+ "hue-core",
+]
+
+[[package]]
+name = "hue-protocol"
+version = "0.1.0"
+dependencies = [
+ "hue-core",
+]
 
 [[package]]
 name = "hued"

@@ -4,4 +4,4 @@ version.workspace = true
 edition.workspace = true
 
 [dependencies]
-hue-mediaremote.workspace = true
+hue-mediaremote = { path = "../hue-mediaremote" }
