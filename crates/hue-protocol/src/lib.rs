@@ -25,17 +25,16 @@
 //!
 //! ```text
 //! +0   u16 field_mask
-//! +2   u16 reserved
-//! +4   u32 track_id
-//! +8   u64 position_ms
-//! +16  u64 duration_ms
-//! +24  u8  playing
-//! +25  u8  title_len
-//! +26  u8  artist_len
-//! +27  u8  album_len
-//! +28  u8  app_name_len
-//! +29  u8  reserved
-//! +30  u16 reserved
+//! +2   u32 track_id
+//! +6   u64 position_ms
+//! +14  u64 duration_ms
+//! +22  u8  playing
+//! +23  u8  title_len
+//! +24  u8  artist_len
+//! +25  u8  album_len
+//! +26  u8  app_name_len
+//! +27  u8  reserved
+//! +28  u32 artwork_id
 //! +32  variable string bytes in title/artist/album/app_name order
 //! ```
 //!

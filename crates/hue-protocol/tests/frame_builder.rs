@@ -45,6 +45,7 @@ fn populated_state() -> UiState {
     state.position_ms = 1_000;
     state.duration_ms = 120_000;
     state.playing = false;
+    state.artwork_id = 500;
     state
 }
 

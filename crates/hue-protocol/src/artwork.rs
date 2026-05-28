@@ -125,7 +125,7 @@ impl ArtworkRx {
             return Err(ProtocolError::InvalidLength);
         }
 
-        if payload.data.len() % 2 != 0 {
+        if !payload.data.len().is_multiple_of(2) {
             return Err(ProtocolError::InvalidAlignment);
         }
 

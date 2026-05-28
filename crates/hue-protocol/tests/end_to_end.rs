@@ -58,6 +58,7 @@ fn full_track_state() -> UiState {
     state.position_ms = 0;
     state.duration_ms = 180_000;
     state.playing = true;
+    state.artwork_id = 0x0bad_f00d;
     state
 }
 
@@ -98,7 +99,7 @@ fn media_state_plus_artwork_stream_end_to_end() {
     seq += 1;
 
     let artwork_begin = ArtworkBeginPayload {
-        artwork_id: track_state.track_id,
+        artwork_id: track_state.artwork_id,
         width: 4,
         height: 2,
         total_bytes: 16,
@@ -115,7 +116,7 @@ fn media_state_plus_artwork_stream_end_to_end() {
         &mut frame_buf,
         seq,
         ArtworkChunkPayload {
-            artwork_id: track_state.track_id,
+            artwork_id: track_state.artwork_id,
             chunk_index: 0,
             data: &chunk0,
         },
@@ -128,7 +129,7 @@ fn media_state_plus_artwork_stream_end_to_end() {
         &mut frame_buf,
         seq,
         ArtworkChunkPayload {
-            artwork_id: track_state.track_id,
+            artwork_id: track_state.artwork_id,
             chunk_index: 1,
             data: &chunk1,
         },
@@ -142,7 +143,7 @@ fn media_state_plus_artwork_stream_end_to_end() {
         &mut frame_buf,
         seq,
         ArtworkEndPayload {
-            artwork_id: track_state.track_id,
+            artwork_id: track_state.artwork_id,
             checksum: artwork_checksum,
         },
     )
@@ -189,7 +190,7 @@ fn media_state_plus_artwork_stream_end_to_end() {
             .begin(ArtworkBeginPayload::decode(&frames[2].payload).unwrap())
             .unwrap(),
         ArtworkRxStatus::Began {
-            artwork_id: track_state.track_id,
+            artwork_id: track_state.artwork_id,
             total_bytes: 16,
         }
     );
@@ -210,7 +211,7 @@ fn media_state_plus_artwork_stream_end_to_end() {
             .end(ArtworkEndPayload::decode(&frames[5].payload).unwrap())
             .unwrap(),
         ArtworkRxStatus::Complete {
-            artwork_id: track_state.track_id,
+            artwork_id: track_state.artwork_id,
             total_chunks: 2,
             total_bytes: 16,
             checksum: artwork_checksum,

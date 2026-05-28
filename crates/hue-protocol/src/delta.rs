@@ -1,6 +1,6 @@
 use crate::payload::{
-    FIELD_ALBUM, FIELD_APP_NAME, FIELD_ARTIST, FIELD_DURATION, FIELD_PLAYING,
-    FIELD_POSITION, FIELD_TITLE, FIELD_TRACK_ID,
+    FIELD_ALBUM, FIELD_APP_NAME, FIELD_ARTIST, FIELD_ARTWORK_ID,
+    FIELD_DURATION, FIELD_PLAYING, FIELD_POSITION, FIELD_TITLE, FIELD_TRACK_ID,
 };
 use hue_core::state::UiState;
 
@@ -14,7 +14,8 @@ pub fn diff_state(old: &UiState, new: &UiState) -> u16 {
             | FIELD_ARTIST
             | FIELD_ALBUM
             | FIELD_APP_NAME
-            | FIELD_DURATION;
+            | FIELD_DURATION
+            | FIELD_ARTWORK_ID;
 
         // Position usually resets or jumps on new track too.
         if old.position_ms != new.position_ms {
@@ -31,6 +32,10 @@ pub fn diff_state(old: &UiState, new: &UiState) -> u16 {
     // Same track: only send cheap/high-frequency fields unless metadata truly changed.
     if old.position_ms != new.position_ms {
         mask |= FIELD_POSITION;
+    }
+
+    if old.artwork_id != new.artwork_id {
+        mask |= FIELD_ARTWORK_ID;
     }
 
     if old.playing != new.playing {

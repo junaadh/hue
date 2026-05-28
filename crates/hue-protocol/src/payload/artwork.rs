@@ -233,7 +233,7 @@ fn validate_chunk_data_len(data_len: usize) -> Result<()> {
         return Err(ProtocolError::InvalidLength);
     }
 
-    if data_len % 2 != 0 {
+    if !data_len.is_multiple_of(2) {
         return Err(ProtocolError::InvalidAlignment);
     }
 

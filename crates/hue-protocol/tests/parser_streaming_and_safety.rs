@@ -3,10 +3,10 @@ use hue_protocol::{
     frame::{encode_frame, validate_frame_crc},
     parser::{FeedResult, FrameParser},
     payload::{
-        FIELD_ALBUM, FIELD_APP_NAME, FIELD_ARTIST, FIELD_DURATION,
-        FIELD_PLAYING, FIELD_POSITION, FIELD_TITLE, FIELD_TRACK_ID,
-        STATE_DELTA_FIXED_LEN, VALID_STATE_FIELDS, decode_state_delta,
-        encode_state_delta,
+        FIELD_ALBUM, FIELD_APP_NAME, FIELD_ARTIST, FIELD_ARTWORK_ID,
+        FIELD_DURATION, FIELD_PLAYING, FIELD_POSITION, FIELD_TITLE,
+        FIELD_TRACK_ID, STATE_DELTA_FIXED_LEN, VALID_STATE_FIELDS,
+        decode_state_delta, encode_state_delta,
     },
     seq_distance,
     wire::{HEADER_LEN, MAGIC, MAX_PAYLOAD_SIZE, MessageType, ProtocolError},
@@ -90,6 +90,7 @@ fn full_state() -> UiState {
     state.position_ms = 12_345;
     state.duration_ms = 234_567;
     state.playing = true;
+    state.artwork_id = 0x8765_4321;
     state
 }
 
@@ -102,6 +103,7 @@ fn all_state_fields() -> u16 {
         | FIELD_POSITION
         | FIELD_DURATION
         | FIELD_PLAYING
+        | FIELD_ARTWORK_ID
 }
 
 #[test]
@@ -361,7 +363,7 @@ fn parser_rejects_reserved_header_byte() {
 #[test]
 fn parser_rejects_reserved_state_field_bits() {
     let mut payload = [0u8; STATE_DELTA_FIXED_LEN];
-    let invalid_mask = VALID_STATE_FIELDS | (1 << 8);
+    let invalid_mask = VALID_STATE_FIELDS | (1 << 9);
     payload[0..2].copy_from_slice(&invalid_mask.to_le_bytes());
     let mut state = full_state();
     let before = state;
@@ -385,7 +387,7 @@ fn decoder_rejects_truncated_fixed_section() {
 fn decoder_rejects_truncated_variable_string() {
     let mut payload = [0u8; STATE_DELTA_FIXED_LEN + 4];
     payload[0..2].copy_from_slice(&FIELD_TITLE.to_le_bytes());
-    payload[25] = 20;
+    payload[23] = 20;
     payload[STATE_DELTA_FIXED_LEN..].copy_from_slice(b"tiny");
     let mut state = UiState::new();
 
@@ -399,10 +401,10 @@ fn decoder_rejects_payload_claiming_more_than_available() {
     let mask = FIELD_TITLE | FIELD_ARTIST | FIELD_ALBUM | FIELD_APP_NAME;
     let mut payload = [0u8; STATE_DELTA_FIXED_LEN + 8];
     payload[0..2].copy_from_slice(&mask.to_le_bytes());
+    payload[23] = 4;
+    payload[24] = 4;
     payload[25] = 4;
     payload[26] = 4;
-    payload[27] = 4;
-    payload[28] = 4;
     payload[STATE_DELTA_FIXED_LEN..].copy_from_slice(b"12345678");
     let mut state = UiState::new();
 
@@ -438,8 +440,8 @@ fn decoder_rejects_invalid_utf8() {
     let mask = FIELD_TRACK_ID | FIELD_TITLE;
     let mut payload = [0u8; STATE_DELTA_FIXED_LEN + 2];
     payload[0..2].copy_from_slice(&mask.to_le_bytes());
-    payload[4..8].copy_from_slice(&5u32.to_le_bytes());
-    payload[25] = 2;
+    payload[2..6].copy_from_slice(&5u32.to_le_bytes());
+    payload[23] = 2;
     payload[STATE_DELTA_FIXED_LEN..].copy_from_slice(&[0xc3, 0x28]);
     let mut state = full_state();
     let before = state;

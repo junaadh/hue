@@ -13,6 +13,8 @@ pub struct UiState {
     pub duration_ms: u64,
 
     pub playing: bool,
+
+    pub artwork_id: u32,
 }
 
 impl UiState {
@@ -26,6 +28,8 @@ impl UiState {
             position_ms: 0,
             duration_ms: 0,
             playing: false,
+
+            artwork_id: 0,
         }
     }
 

@@ -11,6 +11,7 @@ pub const FIELD_APP_NAME: u16 = 1 << 4;
 pub const FIELD_POSITION: u16 = 1 << 5;
 pub const FIELD_DURATION: u16 = 1 << 6;
 pub const FIELD_PLAYING: u16 = 1 << 7;
+pub const FIELD_ARTWORK_ID: u16 = 1 << 8;
 
 pub const VALID_STATE_FIELDS: u16 = FIELD_TRACK_ID
     | FIELD_TITLE
@@ -19,28 +20,27 @@ pub const VALID_STATE_FIELDS: u16 = FIELD_TRACK_ID
     | FIELD_APP_NAME
     | FIELD_POSITION
     | FIELD_DURATION
-    | FIELD_PLAYING;
+    | FIELD_PLAYING
+    | FIELD_ARTWORK_ID;
 
 pub const RESERVED_STATE_FIELDS: u16 = !VALID_STATE_FIELDS;
 
 ///
 /// +0   u16 field_mask
-/// +2   u16 reserved
+/// +2   u32 track_id
 ///
-/// +4   u32 track_id
+/// +6   u64 position_ms
 ///
-/// +8   u64 position_ms
+/// +14  u64 duration_ms
 ///
-/// +16  u64 duration_ms
+/// +22  u8  playing
+/// +23  u8  title_len
+/// +24  u8  artist_len
+/// +25  u8  album_len
+/// +26  u8  app_name_len
 ///
-/// +24  u8  playing
-/// +25  u8  title_len
-/// +26  u8  artist_len
-/// +27  u8  album_len
-/// +28  u8  app_name_len
-///
-/// +29  u8  reserved
-/// +30  u16 reserved
+/// +27  u8  reserved
+/// +28  u32 artwork_id
 ///
 /// +32  variable string data starts
 ///
@@ -57,45 +57,44 @@ pub fn decode_state_delta(payload: &[u8], out: &mut UiState) -> Result<u16> {
         return Err(ProtocolError::InvalidFieldMask);
     }
 
-    if payload[2] != 0
-        || payload[3] != 0
-        || payload[29] != 0
-        || payload[30] != 0
-        || payload[31] != 0
-    {
+    if payload[27] != 0 {
         return Err(ProtocolError::ReservedNonZero);
     }
 
     if field_mask & FIELD_TRACK_ID != 0 {
         next.track_id = u32::from_le_bytes([
-            payload[4], payload[5], payload[6], payload[7],
+            payload[2], payload[3], payload[4], payload[5],
         ]);
     }
 
     if field_mask & FIELD_POSITION != 0 {
         next.position_ms =
-            u64::from_le_bytes(payload[8..16].try_into().unwrap());
+            u64::from_le_bytes(payload[6..14].try_into().unwrap());
     }
 
     if field_mask & FIELD_DURATION != 0 {
         next.duration_ms =
-            u64::from_le_bytes(payload[16..24].try_into().unwrap());
+            u64::from_le_bytes(payload[14..22].try_into().unwrap());
     }
 
     if field_mask & FIELD_PLAYING != 0 {
-        next.playing = match payload[24] {
+        next.playing = match payload[22] {
             0 => false,
-
             1 => true,
-
             _ => return Err(ProtocolError::InvalidLength),
         };
     }
 
-    let title_len = payload[25] as usize;
-    let artist_len = payload[26] as usize;
-    let album_len = payload[27] as usize;
-    let app_name_len = payload[28] as usize;
+    let title_len = payload[23] as usize;
+    let artist_len = payload[24] as usize;
+    let album_len = payload[25] as usize;
+    let app_name_len = payload[26] as usize;
+
+    if field_mask & FIELD_ARTWORK_ID != 0 {
+        next.artwork_id =
+            u32::from_le_bytes(payload[28..32].try_into().unwrap());
+    }
+
     let mut cursor = STATE_DELTA_FIXED_LEN;
 
     if field_mask & FIELD_TITLE != 0 {
@@ -170,19 +169,23 @@ pub fn encode_state_delta(
     out[0..2].copy_from_slice(&field_mask.to_le_bytes());
 
     if field_mask & FIELD_TRACK_ID != 0 {
-        out[4..8].copy_from_slice(&state.track_id.to_le_bytes());
+        out[2..6].copy_from_slice(&state.track_id.to_le_bytes());
     }
 
     if field_mask & FIELD_POSITION != 0 {
-        out[8..16].copy_from_slice(&state.position_ms.to_le_bytes());
+        out[6..14].copy_from_slice(&state.position_ms.to_le_bytes());
     }
 
     if field_mask & FIELD_DURATION != 0 {
-        out[16..24].copy_from_slice(&state.duration_ms.to_le_bytes());
+        out[14..22].copy_from_slice(&state.duration_ms.to_le_bytes());
     }
 
     if field_mask & FIELD_PLAYING != 0 {
-        out[24] = u8::from(state.playing);
+        out[22] = u8::from(state.playing);
+    }
+
+    if field_mask & FIELD_ARTWORK_ID != 0 {
+        out[28..32].copy_from_slice(&state.artwork_id.to_le_bytes());
     }
 
     let title = state.title.as_bytes();
@@ -193,22 +196,22 @@ pub fn encode_state_delta(
     let mut cursor = STATE_DELTA_FIXED_LEN;
 
     if field_mask & FIELD_TITLE != 0 {
-        out[25] = title.len() as u8;
+        out[23] = title.len() as u8;
         write_bytes(out, &mut cursor, title)?;
     }
 
     if field_mask & FIELD_ARTIST != 0 {
-        out[26] = artist.len() as u8;
+        out[24] = artist.len() as u8;
         write_bytes(out, &mut cursor, artist)?;
     }
 
     if field_mask & FIELD_ALBUM != 0 {
-        out[27] = album.len() as u8;
+        out[25] = album.len() as u8;
         write_bytes(out, &mut cursor, album)?;
     }
 
     if field_mask & FIELD_APP_NAME != 0 {
-        out[28] = app_name.len() as u8;
+        out[26] = app_name.len() as u8;
         write_bytes(out, &mut cursor, app_name)?;
     }
 
